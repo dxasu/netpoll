@@ -202,8 +202,7 @@ func (c *connection) onDisconnect() {
 
 // onRequest is responsible for executing the closeCallbacks after the connection has been closed.
 func (c *connection) onRequest() (needTrigger bool) {
-	var onRequest, ok = c.onRequestCallback.Load().(OnRequest)
-	if !ok {
+	if c.onRequestCallback.Load() == nil {
 		return true
 	}
 	// wait onConnect finished first
@@ -217,7 +216,10 @@ func (c *connection) onRequest() (needTrigger bool) {
 			return c.Reader().Len() > 0
 		},
 		func(c *connection) {
-			_ = onRequest(c.ctx, c)
+			onRequest, ok := c.onRequestCallback.Load().(OnRequest)
+			if ok {
+				_ = onRequest(c.ctx, c)
+			}
 		},
 	)
 	// if not processed, should trigger read
